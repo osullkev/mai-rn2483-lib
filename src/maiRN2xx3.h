@@ -144,7 +144,7 @@ class maiRN2xx3
      *
      * Parameter is an ascii text string.
      */
-    TX_RETURN_TYPE tx(String);
+    TX_RETURN_TYPE tx(String, bool);
 
     /*
      * Transmit raw byte encoded data via LoRa WAN.
@@ -158,14 +158,14 @@ class maiRN2xx3
      *
      * Parameter is an ascii text string.
      */
-    TX_RETURN_TYPE txCnf(String);
+    TX_RETURN_TYPE txCnf(String, bool);
 
     /*
      * Do an unconfirmed transmission via LoRa WAN.
      *
      * Parameter is an ascii text string.
      */
-    TX_RETURN_TYPE txUncnf(String);
+    TX_RETURN_TYPE txUncnf(String, bool);
 
     /*
      * Transmit the provided data using the provided command.

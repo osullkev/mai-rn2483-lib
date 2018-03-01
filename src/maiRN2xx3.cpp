@@ -323,9 +323,9 @@ bool maiRN2xx3::initABP(String devAddr, String AppSKey, String NwkSKey)
   }
 }
 
-TX_RETURN_TYPE maiRN2xx3::tx(String data)
+TX_RETURN_TYPE maiRN2xx3::tx(String data, bool shouldEncode)
 {
-  return txUncnf(data); //we are unsure which mode we're in. Better not to wait for acks.
+  return txUncnf(data, shouldEncode); //we are unsure which mode we're in. Better not to wait for acks.
 }
 
 TX_RETURN_TYPE maiRN2xx3::txBytes(const byte* data, uint8_t size)
@@ -342,14 +342,14 @@ TX_RETURN_TYPE maiRN2xx3::txBytes(const byte* data, uint8_t size)
   return txCommand("mac tx uncnf 1 ", dataToTx, false);
 }
 
-TX_RETURN_TYPE maiRN2xx3::txCnf(String data)
+TX_RETURN_TYPE maiRN2xx3::txCnf(String data, bool shouldEncode)
 {
-  return txCommand("mac tx cnf 1 ", data, true);
+  return txCommand("mac tx cnf 1 ", data, shouldEncode);
 }
 
-TX_RETURN_TYPE maiRN2xx3::txUncnf(String data)
+TX_RETURN_TYPE maiRN2xx3::txUncnf(String data, bool shouldEncode)
 {
-  return txCommand("mac tx uncnf 1 ", data, true);
+  return txCommand("mac tx uncnf 1 ", data, shouldEncode);
 }
 
 TX_RETURN_TYPE maiRN2xx3::txCommand(String command, String data, bool shouldEncode)
