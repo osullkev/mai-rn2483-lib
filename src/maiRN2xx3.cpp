@@ -96,13 +96,9 @@ bool maiRN2xx3::init()
   {
     return false;
   }
-  else if(_otaa==true)
-  {
-    return initOTAA(_appeui, _appskey);
-  }
   else
   {
-    return initABP(_devAddr, _appskey, _nwkskey);
+    return initOTAA(_appeui, _appskey);
   }
 }
 
@@ -218,110 +214,6 @@ bool maiRN2xx3::initOTAA(String AppEUI, String AppKey, String DevEUI)
   _serial.setTimeout(2000);
   _rn2483Response = receivedData;
   return joined;
-}
-
-
-bool maiRN2xx3::initOTAA(uint8_t * AppEUI, uint8_t * AppKey, uint8_t * DevEUI)
-{
-  String app_eui;
-  String dev_eui;
-  String app_key;
-  char buff[3];
-
-  app_eui="";
-  for (uint8_t i=0; i<8; i++)
-  {
-    sprintf(buff, "%02X", AppEUI[i]);
-    app_eui += String (buff);
-  }
-
-  dev_eui = "0";
-  if (DevEUI) //==0
-  {
-    dev_eui = "";
-    for (uint8_t i=0; i<8; i++)
-    {
-      sprintf(buff, "%02X", DevEUI[i]);
-      dev_eui += String (buff);
-    }
-  }
-
-  app_key="";
-  for (uint8_t i=0; i<16; i++)
-  {
-    sprintf(buff, "%02X", AppKey[i]);
-    app_key += String (buff);
-  }
-
-  return initOTAA(app_eui, app_key, dev_eui);
-}
-
-bool maiRN2xx3::initABP(String devAddr, String AppSKey, String NwkSKey)
-{
-  _otaa = false;
-  _devAddr = devAddr;
-  _appskey = AppSKey;
-  _nwkskey = NwkSKey;
-  String receivedData;
-
-  //clear serial buffer
-  while(_serial.available())
-    _serial.read();
-
-  configureModuleType();
-
-  switch (_moduleType) {
-    case RN2903:
-      sendRawCommand(F("mac reset"));
-      break;
-    case RN2483:
-      sendRawCommand(F("mac reset 868"));
-      // sendRawCommand(F("mac set rx2 3 869525000"));
-      // In the past we set the downlink channel here,
-      // but setFrequencyPlan is a better place to do it.
-      break;
-    default:
-      // we shouldn't go forward with the init
-      return false;
-  }
-
-  sendRawCommand("mac set nwkskey "+_nwkskey);
-  sendRawCommand("mac set appskey "+_appskey);
-  sendRawCommand("mac set devaddr "+_devAddr);
-  sendRawCommand(F("mac set adr off"));
-
-  // Switch off automatic replies, because this library can not
-  // handle more than one mac_rx per tx. See RN2483 datasheet,
-  // 2.4.8.14, page 27 and the scenario on page 19.
-  sendRawCommand(F("mac set ar off"));
-
-  if (_moduleType == RN2903)
-  {
-    sendRawCommand("mac set pwridx 5");
-  }
-  else
-  {
-    sendRawCommand(F("mac set pwridx 1"));
-  }
-  sendRawCommand(F("mac set dr 5")); //0= min, 7=max
-
-  _serial.setTimeout(60000);
-  sendRawCommand(F("mac save"));
-  sendRawCommand(F("mac join abp"));
-  receivedData = _serial.readStringUntil('\n');
-
-  _serial.setTimeout(2000);
-  delay(1000);
-
-  if(receivedData.startsWith("accepted"))
-  {
-    return true;
-    //with abp we can always join successfully as long as the keys are valid
-  }
-  else
-  {
-    return false;
-  }
 }
 
 TX_RETURN_TYPE maiRN2xx3::tx(String data, bool shouldEncode)

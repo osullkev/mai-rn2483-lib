@@ -96,20 +96,6 @@ class maiRN2xx3
     bool init();
 
     /*
-     * Initialise the RN2xx3 and join a network using personalization.
-     *
-     * addr: The device address as a HEX string.
-     *       Example "0203FFEE"
-     * AppSKey: Application Session Key as a HEX string.
-     *          Example "8D7FFEF938589D95AAD928C2E2E7E48F"
-     * NwkSKey: Network Session Key as a HEX string.
-     *          Example "AE17E567AECC8787F749A62F5541D522"
-     */
-    bool initABP(String addr, String AppSKey, String NwkSKey);
-
-    //TODO: initABP(uint8_t * addr, uint8_t * AppSKey, uint8_t * NwkSKey)
-
-    /*
      * Initialise the RN2xx3 and join a network using over the air activation.
      *
      * AppEUI: Application EUI as a HEX string.
@@ -125,17 +111,6 @@ class maiRN2xx3
      * will return false.
      */
     bool initOTAA(String AppEUI="", String AppKey="", String DevEUI="");
-
-    /*
-     * Initialise the RN2xx3 and join a network using over the air activation,
-     * using byte arrays. This is useful when storing the keys in eeprom or flash
-     * and reading them out in runtime.
-     *
-     * AppEUI: Application EUI as a uint8_t buffer
-     * AppKey: Application key as a uint8_t buffer
-     * DevEui: Device EUI as a uint8_t buffer (optional - set to 0 to use Hardware EUI)
-     */
-     bool initOTAA(uint8_t * AppEUI, uint8_t * AppKey, uint8_t * DevEui);
 
     /*
      * Transmit the provided data. The data is hex-encoded by this library,
