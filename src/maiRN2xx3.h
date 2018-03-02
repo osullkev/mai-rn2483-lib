@@ -218,6 +218,11 @@ class maiRN2xx3
     String getRx();
 
     /*
+     * Returns the response from the RN2483 module.
+     */
+    String getRN2483Response();
+
+    /*
      * Get the RN2xx3's SNR of the last received packet. Helpful to debug link quality.
      */
     int getSNR();
@@ -261,6 +266,9 @@ class maiRN2xx3
 
     // The downlink messenge
     String _rxMessenge = "";
+
+    String _rn2483Response = "";
+
 
     /*
      * Auto configure for either RN2903 or RN2483 module

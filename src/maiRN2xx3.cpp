@@ -216,6 +216,7 @@ bool maiRN2xx3::initOTAA(String AppEUI, String AppKey, String DevEUI)
     }
   }
   _serial.setTimeout(2000);
+  _rn2483Response = receivedData;
   return joined;
 }
 
@@ -384,6 +385,7 @@ TX_RETURN_TYPE maiRN2xx3::txCommand(String command, String data, bool shouldEnco
 
     String receivedData = _serial.readStringUntil('\n');
     //TODO: Debug print on receivedData
+    _rn2483Response = receivedData;
 
     if(receivedData.startsWith("ok"))
     {
@@ -547,6 +549,10 @@ String maiRN2xx3::base16encode(String input)
 
 String maiRN2xx3::getRx() {
   return _rxMessenge;
+}
+
+String maiRN2xx3::getRN2483Response() {
+  return _rn2483Response;
 }
 
 int maiRN2xx3::getSNR()
