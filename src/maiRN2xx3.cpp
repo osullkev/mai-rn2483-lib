@@ -108,6 +108,7 @@ bool maiRN2xx3::initOTAA(String AppEUI, String AppKey, String DevEUI)
   _otaa = true;
   _nwkskey = "0";
   String receivedData;
+  _rn2483Response = "";
 
   //clear serial buffer
   while(_serial.available())
@@ -197,9 +198,40 @@ bool maiRN2xx3::initOTAA(String AppEUI, String AppKey, String DevEUI)
   // Only try twice to join, then return and let the user handle it.
   for(int i=0; i<2 && !joined; i++)
   {
-    sendRawCommand(F("mac join otaa"));
+    _rn2483Response += sendRawCommand(F("mac join otaa"));
     // Parse 2nd response
+    _serial.setTimeout(10000);
     receivedData = _serial.readStringUntil('\n');
+    _rn2483Response += "->" + receivedData + ";";
+
+    if(receivedData.startsWith("accepted"))
+    {
+      joined=true;
+      delay(10000);
+    }
+    else
+    {
+      delay(10000);
+    }
+  }
+  _serial.setTimeout(2000);
+  //_rn2483Response += "->" + receivedData;
+  return joined;
+}
+
+bool maiRN2xx3::joinOTAA()
+{
+  String receivedData;
+  _rn2483Response = "";
+  bool joined = false;
+  // Only try twice to join, then return and let the user handle it.
+  for(int i=0; i<2 && !joined; i++)
+  {
+    _rn2483Response += sendRawCommand(F("mac join otaa"));
+    // Parse 2nd response
+    _serial.setTimeout(10000);
+    receivedData = _serial.readStringUntil('\n');
+    _rn2483Response += "->" + receivedData + ";";
 
     if(receivedData.startsWith("accepted"))
     {
@@ -212,7 +244,7 @@ bool maiRN2xx3::initOTAA(String AppEUI, String AppKey, String DevEUI)
     }
   }
   _serial.setTimeout(2000);
-  _rn2483Response = receivedData;
+  //_rn2483Response += "->" + receivedData;
   return joined;
 }
 
@@ -284,6 +316,7 @@ TX_RETURN_TYPE maiRN2xx3::txCommand(String command, String data, bool shouldEnco
       _serial.setTimeout(30000);
       receivedData = _serial.readStringUntil('\n');
       _serial.setTimeout(2000);
+      _rn2483Response += "->" + receivedData;
 
       //TODO: Debug print on receivedData
 
@@ -304,7 +337,7 @@ TX_RETURN_TYPE maiRN2xx3::txCommand(String command, String data, bool shouldEnco
 
       else if(receivedData.startsWith("mac_err"))
       {
-        init();
+        return TX_FAIL;
       }
 
       else if(receivedData.startsWith("invalid_data_len"))
@@ -324,7 +357,7 @@ TX_RETURN_TYPE maiRN2xx3::txCommand(String command, String data, bool shouldEnco
       else if(receivedData.startsWith("radio_err"))
       {
         //This should never happen. If it does, something major is wrong.
-        init();
+        return TX_FAIL;
       }
 
       else
@@ -343,47 +376,39 @@ TX_RETURN_TYPE maiRN2xx3::txCommand(String command, String data, bool shouldEnco
 
     else if(receivedData.startsWith("not_joined"))
     {
-      init();
+      send_success = true;
+      return TX_NOT_JOINED;
     }
 
     else if(receivedData.startsWith("no_free_ch"))
     {
       //retry
-      delay(1000);
+      send_success = true;
+      return TX_FAIL;
     }
 
     else if(receivedData.startsWith("silent"))
     {
-      init();
+      send_success = true;
+      return TX_FAIL;
     }
 
     else if(receivedData.startsWith("frame_counter_err_rejoin_needed"))
     {
-      init();
+      send_success = true;
+      return TX_FAIL;
     }
 
     else if(receivedData.startsWith("busy"))
     {
-      busy_count++;
-
-      // Not sure if this is wise. At low data rates with large packets
-      // this can perhaps cause transmissions at more than 1% duty cycle.
-      // Need to calculate the correct constant value.
-      // But it is wise to have this check and re-init in case the
-      // lorawan stack in the RN2xx3 hangs.
-      if(busy_count>=10)
-      {
-        init();
-      }
-      else
-      {
-        delay(1000);
-      }
+      send_success = true;
+      return TX_FAIL;
     }
 
     else if(receivedData.startsWith("mac_paused"))
     {
-      init();
+      send_success = true;
+      return TX_FAIL;
     }
 
     else if(receivedData.startsWith("invalid_data_len"))
@@ -396,7 +421,8 @@ TX_RETURN_TYPE maiRN2xx3::txCommand(String command, String data, bool shouldEnco
     else
     {
       //unknown response after mac tx command
-      init();
+      send_success = true;
+      return TX_FAIL;
     }
   }
 

@@ -33,8 +33,12 @@ enum TX_RETURN_TYPE {
   TX_SUCCESS = 1, // The transmission was successful.
                   // Also the case when a confirmed message was acked.
 
-  TX_WITH_RX = 2  // A downlink message was received after the transmission.
+  TX_WITH_RX = 2,  // A downlink message was received after the transmission.
                   // This also implies that a confirmed message is acked.
+
+  TX_NOT_JOINED = 3  // A node is not joined to the network.
+
+
 };
 
 class maiRN2xx3
@@ -111,6 +115,8 @@ class maiRN2xx3
      * will return false.
      */
     bool initOTAA(String AppEUI="", String AppKey="", String DevEUI="");
+
+    bool joinOTAA();
 
     /*
      * Transmit the provided data. The data is hex-encoded by this library,
