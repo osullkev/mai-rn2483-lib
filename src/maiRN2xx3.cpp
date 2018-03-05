@@ -172,10 +172,12 @@ bool maiRN2xx3::initOTAA(String AppEUI, String AppKey, String DevEUI)
     sendRawCommand(F("mac set pwridx 1"));
   }
 
+  sendRawCommand(F("mac set dr 0"));
+
   // TTN does not yet support Adaptive Data Rate.
   // Using it is also only necessary in limited situations.
   // Therefore disable it by default.
-  sendRawCommand(F("mac set adr off"));
+  sendRawCommand(F("mac set adr on"));
 
   // Switch off automatic replies, because this library can not
   // handle more than one mac_rx per tx. See RN2483 datasheet,
@@ -279,7 +281,6 @@ TX_RETURN_TYPE maiRN2xx3::txUncnf(String data, bool shouldEncode)
 
 TX_RETURN_TYPE maiRN2xx3::txCommand(String command, String data, bool shouldEncode)
 {
-  bool send_success = false;
   uint8_t busy_count = 0;
   uint8_t retry_count = 0;
 
@@ -287,146 +288,105 @@ TX_RETURN_TYPE maiRN2xx3::txCommand(String command, String data, bool shouldEnco
   while(_serial.available())
     _serial.read();
 
-  while(!send_success)
+  _serial.print(command);
+  if(shouldEncode)
   {
-    //retransmit a maximum of 10 times
-    retry_count++;
-    if(retry_count>10)
-    {
-      return TX_FAIL;
-    }
+    sendEncoded(data);
+  }
+  else
+  {
+    _serial.print(data);
+  }
+  _serial.println();
 
-    _serial.print(command);
-    if(shouldEncode)
-    {
-      sendEncoded(data);
-    }
-    else
-    {
-      _serial.print(data);
-    }
-    _serial.println();
+  String receivedData = _serial.readStringUntil('\n');
+  //TODO: Debug print on receivedData
+  _rn2483Response = receivedData;
 
-    String receivedData = _serial.readStringUntil('\n');
+  if(receivedData.startsWith("ok"))
+  {
+    _serial.setTimeout(30000);
+    receivedData = _serial.readStringUntil('\n');
+    _serial.setTimeout(2000);
+    _rn2483Response += "->" + receivedData;
+
     //TODO: Debug print on receivedData
-    _rn2483Response = receivedData;
-
-    if(receivedData.startsWith("ok"))
+    if(receivedData.startsWith("mac_tx_ok"))
     {
-      _serial.setTimeout(30000);
-      receivedData = _serial.readStringUntil('\n');
-      _serial.setTimeout(2000);
-      _rn2483Response += "->" + receivedData;
-
-      //TODO: Debug print on receivedData
-
-      if(receivedData.startsWith("mac_tx_ok"))
-      {
-        //SUCCESS!!
-        send_success = true;
-        return TX_SUCCESS;
-      }
-
-      else if(receivedData.startsWith("mac_rx"))
-      {
-        //example: mac_rx 1 54657374696E6720313233
-        _rxMessenge = receivedData.substring(receivedData.indexOf(' ', 7)+1);
-        send_success = true;
-        return TX_WITH_RX;
-      }
-
-      else if(receivedData.startsWith("mac_err"))
-      {
-        return TX_FAIL;
-      }
-
-      else if(receivedData.startsWith("invalid_data_len"))
-      {
-        //this should never happen if the prototype worked
-        send_success = true;
-        return TX_FAIL;
-      }
-
-      else if(receivedData.startsWith("radio_tx_ok"))
-      {
-        //SUCCESS!!
-        send_success = true;
-        return TX_SUCCESS;
-      }
-
-      else if(receivedData.startsWith("radio_err"))
-      {
-        //This should never happen. If it does, something major is wrong.
-        return TX_FAIL;
-      }
-
-      else
-      {
-        //unknown response
-        //init();
-      }
+      //SUCCESS!!
+      return TX_SUCCESS;
     }
-
-    else if(receivedData.startsWith("invalid_param"))
+    else if(receivedData.startsWith("mac_rx"))
     {
-      //should not happen if we typed the commands correctly
-      send_success = true;
+      //example: mac_rx 1 54657374696E6720313233
+      _rxMessenge = receivedData.substring(receivedData.indexOf(' ', 7)+1);
+      return TX_WITH_RX;
+    }
+    else if(receivedData.startsWith("mac_err"))
+    {
       return TX_FAIL;
     }
-
-    else if(receivedData.startsWith("not_joined"))
-    {
-      send_success = true;
-      return TX_NOT_JOINED;
-    }
-
-    else if(receivedData.startsWith("no_free_ch"))
-    {
-      //retry
-      send_success = true;
-      return TX_FAIL;
-    }
-
-    else if(receivedData.startsWith("silent"))
-    {
-      send_success = true;
-      return TX_FAIL;
-    }
-
-    else if(receivedData.startsWith("frame_counter_err_rejoin_needed"))
-    {
-      send_success = true;
-      return TX_FAIL;
-    }
-
-    else if(receivedData.startsWith("busy"))
-    {
-      send_success = true;
-      return TX_FAIL;
-    }
-
-    else if(receivedData.startsWith("mac_paused"))
-    {
-      send_success = true;
-      return TX_FAIL;
-    }
-
     else if(receivedData.startsWith("invalid_data_len"))
     {
-      //should not happen if the prototype worked
-      send_success = true;
+      //this should never happen if the prototype worked
       return TX_FAIL;
     }
-
+    else if(receivedData.startsWith("radio_tx_ok"))
+    {
+      //SUCCESS!!
+      return TX_SUCCESS;
+    }
+    else if(receivedData.startsWith("radio_err"))
+    {
+      //This should never happen. If it does, something major is wrong.
+      return TX_FAIL;
+    }
     else
     {
-      //unknown response after mac tx command
-      send_success = true;
-      return TX_FAIL;
+      //unknown response
+      //init();
     }
   }
-
-  return TX_FAIL; //should never reach this
+  else if(receivedData.startsWith("invalid_param"))
+  {
+    //should not happen if we typed the commands correctly
+    return TX_FAIL;
+  }
+  else if(receivedData.startsWith("not_joined"))
+  {
+    return TX_NOT_JOINED;
+  }
+  else if(receivedData.startsWith("no_free_ch"))
+  {
+    //retry
+    return TX_FAIL;
+  }
+  else if(receivedData.startsWith("silent"))
+  {
+    return TX_FAIL;
+  }
+  else if(receivedData.startsWith("frame_counter_err_rejoin_needed"))
+  {
+    return TX_FAIL;
+  }
+  else if(receivedData.startsWith("busy"))
+  {
+    return TX_FAIL;
+  }
+  else if(receivedData.startsWith("mac_paused"))
+  {
+    return TX_FAIL;
+  }
+ else if(receivedData.startsWith("invalid_data_len"))
+  {
+    //should not happen if the prototype worked
+    return TX_FAIL;
+  }
+  else
+  {
+    //unknown response after mac tx command
+    return TX_FAIL;
+  }
 }
 
 void maiRN2xx3::sendEncoded(String input)
