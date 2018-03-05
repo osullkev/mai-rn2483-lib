@@ -344,7 +344,7 @@ TX_RETURN_TYPE maiRN2xx3::txCommand(String command, String data, bool shouldEnco
     else
     {
       //unknown response
-      //init();
+      return TX_FAIL;
     }
   }
   else if(receivedData.startsWith("invalid_param"))
