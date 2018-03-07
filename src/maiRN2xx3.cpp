@@ -324,7 +324,7 @@ TX_RETURN_TYPE maiRN2xx3::txCommand(String command, String data, bool shouldEnco
     }
     else if(receivedData.startsWith("mac_err"))
     {
-      return TX_FAIL;
+      return TX_MAC_ERR;
     }
     else if(receivedData.startsWith("invalid_data_len"))
     {

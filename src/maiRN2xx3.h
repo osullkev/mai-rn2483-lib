@@ -36,8 +36,9 @@ enum TX_RETURN_TYPE {
   TX_WITH_RX = 2,  // A downlink message was received after the transmission.
                   // This also implies that a confirmed message is acked.
 
-  TX_NOT_JOINED = 3  // A node is not joined to the network.
+  TX_NOT_JOINED = 3,  // A node is not joined to the network.
 
+  TX_MAC_ERR = 4 //Downlink packet did not reach the node. The uplink may have transmitted successfully.
 
 };
 
